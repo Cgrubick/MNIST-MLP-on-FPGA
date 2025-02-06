@@ -40,11 +40,16 @@
     parameter   STOP_S = 2'b11;
 
     reg [$clog2(DATA_BITS) - 1:0] bit_counter_reg;   // Keeps track of number of bits recieved
-    reg [DATA_BITS - 1:0]               uart_data;
+    reg [DATA_BITS - 1:0]           uart_data_reg;
+    reg [3:0]                    tick_counter_reg;       // For timing within states
+
+    
     always @(*) begin 
         case(CURR_S)
 
             IDLE_S: begin
+
+                
                 if(RX_i == 0) begin
                     CURR_S <= START_S;
                 end
