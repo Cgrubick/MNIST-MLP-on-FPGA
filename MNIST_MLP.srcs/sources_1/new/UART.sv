@@ -22,7 +22,7 @@
 
  module UART
     #(parameter DATA_BITS = 8,
-                STOP_BIT_TICK = 16
+                BAUD_RATE_DIVISIOR = 100
     )
     (
     input             clk_i,
@@ -43,55 +43,58 @@
     reg [DATA_BITS - 1:0]           uart_data_reg;
     reg [3:0]                    tick_counter_reg;       // For timing within states
 
-    
+    always@(posedge reset) begin
+        state           <= IDLE;
+        bit_counter_reg <= 4'b0;
+        rx_done_tick    <= 1;
+    end
+
     always @(*) begin 
         case(CURR_S)
-
+            //IDLE STATE
             IDLE_S: begin
-
-                
-                if(RX_i == 0) begin
-                    CURR_S <= START_S;
-                end
-            end
-            START_S: begin
-                if(RX_i == 0) begin
+                if(RX_i == 0 && tick_counter_reg == 4'd7) begin
+                    rx_done_o          <= 0;
+                    bit_counter_reg    <= 0;
+                    tick_counter_reg   <= 0;
+                    uart_data_reg      <= 0;
                     CURR_S <= DATA_S;
-                    bit_counter_reg <= 0;
+                end
+                else begin
+                    tick_counter_reg <= tick_counter_reg + 1;
                 end
             end
+            //DATA STATE
             DATA_S: begin
-                CURR_S <= DATA_S;
-                uart_data[bit_counter_reg] <= RX_i;
-                bit_counter_reg <= bit_counter_reg + 1;  
+                if(counter == 4'd15) begin
+                    CURR_S              <= DATA;
+                    data_o              <= {RX_i, data_o[7:1]};
+                    bit_counter_reg     <= bit_counter_reg + 1;
+                    tick_counter_reg    <= tick_counter_reg + 1;
+                    if(bit_counter_reg == 3'd7) begin
+                        CURR_S          <= STOP;
+                        bit_counter_reg <= 0;
+                        rx_done_o       <= 0;
+                    end
+                end
+                else begin
+                    tick_counter_reg    <= tick_counter_reg + 1;
+                end
             end
+            //STOP STATE
             STOP_S: begin
                 if(RX_i == 1) begin
-                    CURR_S <= IDLE_S;
-                    bit_counter_reg <= 0;
-                end           
+                    CURR_S              <= IDLE_S;
+                    rx_done_o           <= 1;
+                end    
+                else begin
+                    tick_counter_reg    <= tick_counter_reg + 1;
+                end       
             end
-            default: CURR_S = IDLE_S;
+            default: CURR_S             <= IDLE_S;
         endcase
     end
 endmodule
 
-
-module baud_rate_generator(
-    input clk_i,            // System clock
-    input [15:0] divisor,   // Divisor for baud rate
-    output reg baud_clk     // Output baud clock
-);
-    reg [15:0] counter;
-
-    always @(posedge clk_i) begin
-        if (counter == divisor) begin
-            counter <= 0;
-            baud_clk <= ~baud_clk; // Toggle baud clock
-        end else begin
-            counter <= counter + 1;
-        end
-    end
-endmodule
 
 
