@@ -20,7 +20,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module top(
+module top
+    #(parameter BAUD_RATE_DIVISIOR = 650
+    )(
     input clk,          // System clock
     input RX_i,           // UART receive input
     input rst,
@@ -42,16 +44,11 @@ module top(
     reg baud_ticks;
     wire reciever_done;
 
-
-    hex_to_seven_seg S0(
-        .hex(nibble),
-        .seven_seg(sseg)    
-    );
-
     baud_rate_generator baud_rate(
         .clk_i(clk_i),
+        .reset(rst),
         .divisor(BAUD_RATE_DIVISIOR),
-        .baud_clk(baud_ticks)
+        .baud_tick(baud_ticks)
     );
   
     // UART Receiver instantiation
@@ -62,6 +59,11 @@ module top(
         .state_tick_i(baud_ticks),
         .rx_done_o(reciever_done),
         .data_o(received_data)
+    );
+
+    hex_to_seven_seg S0(
+        .hex(nibble),
+        .seven_seg(sseg)    
     );
 
 

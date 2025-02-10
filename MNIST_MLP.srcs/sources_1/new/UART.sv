@@ -21,8 +21,7 @@
 
 
  module UART
-    #(parameter DATA_BITS = 8,
-                BAUD_RATE_DIVISIOR = 100
+    #(parameter DATA_BITS = 8
     )
     (
     input             clk_i,
@@ -43,10 +42,10 @@
     reg [DATA_BITS - 1:0]           uart_data_reg;
     reg [3:0]                    tick_counter_reg;       // For timing within states
 
-    always@(posedge reset) begin
-        state           <= IDLE;
+    always@(posedge reset_n_i) begin
+        CURR_S           <= IDLE_S;
         bit_counter_reg <= 4'b0;
-        rx_done_tick    <= 1;
+        rx_done_o    <= 1;
     end
 
     always @(*) begin 
@@ -66,13 +65,13 @@
             end
             //DATA STATE
             DATA_S: begin
-                if(counter == 4'd15) begin
-                    CURR_S              <= DATA;
+                if(tick_counter_reg == 4'd15) begin
+                    CURR_S              <= DATA_S;
                     data_o              <= {RX_i, data_o[7:1]};
                     bit_counter_reg     <= bit_counter_reg + 1;
                     tick_counter_reg    <= tick_counter_reg + 1;
                     if(bit_counter_reg == 3'd7) begin
-                        CURR_S          <= STOP;
+                        CURR_S          <= STOP_S;
                         bit_counter_reg <= 0;
                         rx_done_o       <= 0;
                     end
